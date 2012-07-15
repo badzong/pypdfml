@@ -1,0 +1,3 @@
+reportlab
+jinja2
+PIL
