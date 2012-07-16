@@ -1,26 +1,70 @@
-<pdf filename="test.pdf" pagesize="A4" unit="cm">
+<pdf filename="example.pdf" pagesize="A4" unit="cm">
 	<page>
-		<text x="3" y="20" width="15" height="5">Hello {{ what }}</text>
-		<text x="3" y="18" width="15" height="5" font="Courier">Bye bye {{ what }}</text>
-		<line x1="2" y1="21" x2="15" y2="21" line="0.5" cap="1"></line>
+		<text fontsize="18">Der Zauberlehrling (hello {{ what }})</text>
+		<line/>
+		<text>
+Hat der alte Hexenmeister
+Sich doch einmal wegbegeben!
+Und nun sollen seine Geister
+Auch nach meinem Willen leben.
+Seine Wort und Werke
+Merkt ich und den Brauch,
+Und mit Geistesstärke
+Tu ich Wunder auch.
+		</text>
+		<text align="center">
+Walle! walle
+Manche Strecke,
+Daß, zum Zwecke,
+Wasser fließe
+Und mit reichem, vollem Schwalle
+Zu dem Bade sich ergieße.
+		</text>
+		<text align="right">
+Und nun komm, du alter Besen,
+Nimm die schlechten Lumpenhüllen!
+Bist schon lange Knecht gewesen:
+Nun erfülle meinen Willen!
+Auf zwei Beinen stehe,
+Oben sei ein Kopf,
+Eile nun und gehe
+Mit dem Wassertopf!
+		</text>
+		<text fontsize="18">
 
+Lorem Ipsum</text>
+		<line/>
+		<text/>
+		<text align="left">Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum.  Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet.</text>
+		<text/>
+		<text align="center">Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum.  Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet.</text>
+		<text/>
+		<text align="right">Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum.  Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet.</text>
+		<text/>
+		<text align="justify">Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum.  Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet.</text>
+	</page>
+	<page>
+		<text fontsize="18">Shapes</text>
+		<line/>
+		<rect x="2.54" y="-6" width="2" height="2" />
+		<rect x="5.25" y="-5.75" width="1.5" height="1.5" line="0.5" join="1" fill="0,0,1"/>
+		<circle x_cen="8.5" y_cen="-5" r="1" stroke="1,0,0"/>
+		<ellipse x1="10" y1="-6" x2="13" y2="-4" stroke="1,1,0" line="0.25" fill="0.5,0,0"/>
+		<rect x="15" y="-6.5" width="2" height="2" rotate="45" stroke="0" fill="0,1,0"/>
+
+		<text x="2.54" y="-10" fontsize="18" move_cursor="1">Spirograph</text>
+		<line/>
 		{% for deg in range(0, 360, 15) %}
-			<rect rotate="{{ deg }}" x="10" y="15" height="2" width="2" stroke="0,0,1"></rect>
+			<rect rotate="{{ deg }}" x="10" y="10" height="8" width="1" stroke="1,0,0"/>
+			<rect rotate="{{ deg }}" x="10" y="10" height="5" width="2" stroke="0,1,1"/>
+			<rect rotate="{{ deg }}" x="10" y="10" height="2" width="4" stroke="1,0,1"/>
+			<rect rotate="{{ deg }}" x="10" y="10" height="2" width="3" stroke="0,0,1"/>
 		{% endfor %}
-
-		<image src="rabbit.jpg" x="2" y="2"></image>
-		<text x="2" y="1" height="1" width="20">This photo used through Creative Commons by Zappowbang on Flickr</text>
 	</page>
 	<page>
-		<text x="3" y="20" height="5" width="15" lineheight="0.8">Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum.  Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet.</text>
-		<text align="right" x="3" y="15" height="5" width="15">Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum.  Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet.</text>
-
-		<text fontsize="12.4" align="justify" x="3" y="10" height="5" width="15">Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum.  Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet.</text>
-	</page>
-	<page>
-		<circle x_cen="10" y_cen="10" r="5"></circle>
-		<ellipse stroke="1,0,0" x1="10" y1="10" x2="12" y2="14"></ellipse>
-		<rect x="10" y="20" height="5" width="3" fill="0,0,1"></rect>
-		<rect x="3" y="3" height="10" width="10" join="1" line="0.5"></rect>
+		<text fontsize="18">Random rabbit picture</text>
+		<line/>
+		<image src="rabbit.jpg" x="2.54" y="-12"/>
+		<text x="2.54" y="-12.5">This photo used through Creative Commons by Zappowbang on Flickr</text>
 	</page>
 </pdf>

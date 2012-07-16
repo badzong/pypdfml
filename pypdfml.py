@@ -5,8 +5,13 @@ import xml.parsers.expat
 from jinja2 import Environment, PackageLoader
 import os.path
 
-do_math = ['x', 'y', 'x1', 'y1', 'x2', 'y2', 'x_cen', 'y_cen', 'r', 'height',
-    'width', 'line']
+math_attributes = ['x', 'y', 'x1', 'y1', 'x2', 'y2', 'x_cen', 'y_cen', 'r',
+    'height', 'width', 'line']
+
+auto_cursor = {
+    'text': ['x', 'y', 'width', 'height', 'move_cursor' ],
+    'line': ['x1', 'y1', 'x2', 'y2' ],
+}
 
 rgb = lambda r: [float(x.strip()) for x in r.split(',')]
 
@@ -16,7 +21,7 @@ class Text(object):
     line_number = 1
 
     def __init__(self, canvas, x, y, width, height, font='Helvetica',
-        fontsize=11, align='left', lineheight=1):
+        fontsize=11, align='left', lineheight=1, move_cursor=False):
 
         # Make sure these values aren't strings
         fontsize = float(fontsize)
@@ -30,6 +35,7 @@ class Text(object):
         self.y = y
         self.height = height
         self.width = width
+        self.move_cursor = move_cursor
 
         # Regular lineheight
         self.lineheight = fontsize / 72.0 * units.inch
@@ -43,7 +49,7 @@ class Text(object):
         self.space_width = canvas.stringWidth(' ', font, fontsize)
 
     def append(self, s):
-        self.string += s
+        self.string += s.replace('\t', ' ' * 8)
 
     def draw_line(self, words, space_width, offset):
         line_width = offset
@@ -57,46 +63,66 @@ class Text(object):
 
         self.text.moveCursor(-line_width, self.lineheight)
 
+        return self.lineheight
+
     def draw(self):
         # Set font
         self.canvas.setFont(self.font, self.fontsize)
-        line_width = 0
-        offset = 0
+        page_cursor = 0
 
-        draw_words = []
-
-        for word in self.string.split():
-            word_width = self.canvas.stringWidth(word, self.font, self.fontsize)
-
-            if line_width + word_width < self.width:
-                draw_words.append((word, word_width))
-                line_width += word_width + self.space_width
-                continue
-
-            space = self.space_width
-
-            # Justified
-            if self.align == 'justify':
-                space += (self.width - line_width + space) / (len(draw_words) - 1)
-
-            # Right aligned
-            elif self.align == 'right':
-                offset = self.width - line_width + space
-            
-            # Draw a full line
-            self.draw_line(draw_words, space, offset)
+        for line in self.string.split('\n'):
             draw_words = []
             line_width = 0
+            offset = 0
+            space = self.space_width
 
-        # Draw remainder
-        if len(draw_words):
-            # Right aligned
-            if self.align == 'right':
-                offset = self.width - line_width + space
-            self.draw_line(draw_words, self.space_width, offset)
+            for word in line.split(' '):
+                word_width = self.canvas.stringWidth(word, self.font, self.fontsize)
+
+                if line_width + word_width <= self.width:
+                    draw_words.append((word, word_width))
+                    line_width += word_width + self.space_width
+                    continue
+
+                space = self.space_width
+
+                # Justified
+                if self.align == 'justify':
+                    space += (self.width - line_width + space) / (len(draw_words) - 1)
+
+                # Right aligned
+                elif self.align == 'right':
+                    offset = self.width - line_width + space
+                
+                # Centered
+                elif self.align == 'center':
+                    offset = (self.width - line_width + space) / 2
+                
+                # Draw a full line
+                page_cursor += self.draw_line(draw_words, space, offset)
+                draw_words = [ (word, word_width), ]
+                line_width = word_width + self.space_width
+
+            # Draw remainder
+            if len(draw_words):
+
+                # FIXME: Dirty!
+                # Right aligned
+                if self.align == 'right':
+                    offset = self.width - line_width + space
+                # Centered
+                elif self.align == 'center':
+                    offset = (self.width - line_width + space) / 2
+
+                page_cursor += self.draw_line(draw_words, self.space_width, offset)
 
         # Put text on canvas
         self.canvas.drawText(self.text)
+
+        if self.move_cursor:
+            return page_cursor
+        else:
+            return 0
 
 
 class PyPDFML(object):
@@ -106,6 +132,8 @@ class PyPDFML(object):
     depth = -1
     tag_stack = []
     text_stack = []
+    width = None
+    height = None
 
     defaults = {
         'pagesize': 'letter',
@@ -122,6 +150,13 @@ class PyPDFML(object):
         'join': False,
     }
 
+    # Used only for auto corsor tags
+    cursor_default = {
+        'x': 1 * units.inch,
+        'y': 1 * units.inch,
+    }
+    cursor_pos = None
+
     def __init__(self, template, template_dir='templates',
         image_dir='images'):
 
@@ -129,7 +164,7 @@ class PyPDFML(object):
         self.template_dir = template_dir
         self.image_dir = image_dir
 
-        self.parser = xml.parsers.expat.ParserCreate()
+        self.parser = xml.parsers.expat.ParserCreate(encoding='UTF-8')
         self.parser.StartElementHandler = self.get_start_handler()
         self.parser.EndElementHandler = self.get_end_handler()
         self.parser.CharacterDataHandler = self.get_cdata_handler()
@@ -141,6 +176,19 @@ class PyPDFML(object):
             pass
 
         return self.defaults[name]
+
+    def do_math(self, attrs):
+        # Cast arguments and multiply by unit
+        for k in attrs.keys():
+            if k in math_attributes:
+                attrs[k] = float(attrs[k]) * self.unit
+
+                # If x or y is negative, invert coordinates
+                if attrs[k] < 0:
+                    if k in ['x', 'x_cen', 'x1', 'x2']:
+                        attrs[k] += self.width
+                    if k in ['y', 'y_cen', 'y1', 'y2']:
+                        attrs[k] += self.height
 
     def alter_canvas(self, attrs):
 
@@ -157,13 +205,14 @@ class PyPDFML(object):
 
         rotate = self.pop_value(attrs, 'rotate')
         if rotate:
-
             rotate = float(rotate)
-            attrs['y'] *= -1
+            #attrs['y'] *= -1
             self.canvas.rotate(rotate)
 
         stroke = self.pop_value(attrs, 'stroke')
-        if stroke:
+        if stroke == '0':
+            attrs['stroke'] = 0
+        elif stroke:
             colors = rgb(stroke)
             self.canvas.setStrokeColorRGB(*colors)
 
@@ -195,6 +244,46 @@ class PyPDFML(object):
             join = int(join)
             self.canvas.setLineJoin(join)
 
+    def cursor_magic(self, name, attrs):
+        if not name in auto_cursor:
+            return
+
+        pos = {}
+        pos['move_cursor'] = False
+        pos['height'] = float(attrs.get('fontsize', self.defaults['fontsize']))
+        pos['width'] = self.width - 2 * self.cursor_default['x']
+        pos['x'] = self.cursor_default['x']
+
+        # line magic (add space between text and lines)
+        if name == 'line':
+            pos['height'] = pos['height'] / 8.0
+        
+        pos['y'] = self.cursor_pos - pos['height']
+        pos['x1'] = pos['x']
+        pos['x2'] = pos['x'] + pos['width']
+        pos['y1'] = pos['y']
+        pos['y2'] = pos['y']
+
+        # If y was not specified, the cursor is moved automatically
+        if 'y' not in attrs:
+            pos['move_cursor'] = True
+
+        # move_cursor was specified in XML so adjust cursor here
+        move_cursor = attrs.get('move_cursor', False)
+        if move_cursor:
+            self.cursor_pos = attrs['y'] + pos['height']
+
+        # Add attributes
+        add = auto_cursor[name]
+        for k in add:
+            if k in attrs:
+                continue
+
+            attrs[k] = pos[k]
+
+    def reset_cursor(self):
+        self.cursor_pos = self.height - self.cursor_default['y']
+
     def get_start_handler(self):
         def handler(name, attrs):
             self.tag_stack.append(name)
@@ -211,10 +300,11 @@ class PyPDFML(object):
             if method is None:
                 method = getattr(self.canvas, name)
             
-            # Cast arguments and multiply by unit
-            for k in attrs.keys():
-                if k in do_math:
-                    attrs[k] = float(attrs[k]) * self.unit
+            # Multpily specific attrs by unit
+            self.do_math(attrs)
+
+            # Automatic cursor
+            self.cursor_magic(name, attrs)
 
             # Save state and modify canvas
             if self.canvas and self.depth > 0:
@@ -225,11 +315,9 @@ class PyPDFML(object):
 
             self.depth += 1
 
-
             method(**attrs)
 
         return handler
-
 
     def get_end_handler(self):
         def handler(name):
@@ -253,7 +341,6 @@ class PyPDFML(object):
 
         return handler
 
-
     def get_cdata_handler(self):
         def handler(cdata):
             name = self.tag_stack[-1]
@@ -269,21 +356,17 @@ class PyPDFML(object):
 
         return handler
 
-
     def jinja2(self, context):
         env = Environment(loader=PackageLoader('pypdfml', self.template_dir))
         template = env.get_template(self.template)
-        self.xml = template.render(**context)
-
+        self.xml = template.render(**context).encode('utf-8')
 
     def parse(self):
         self.parser.Parse(self.xml)
 
-
     def generate(self, context):
         self.jinja2(context)
         self.parse()
-
 
     def save(self):
         self.canvas.save()
@@ -295,6 +378,7 @@ class PyPDFML(object):
 
         # Load pagesize by name
         attrs['pagesize'] = pagesizes.__dict__[self.pop_value(attrs, 'pagesize')]
+        (self.width, self.height) = attrs['pagesize']
 
         # Set default unit
         self.unit = units.__dict__[self.pop_value(attrs, 'unit')]
@@ -302,11 +386,15 @@ class PyPDFML(object):
         # Create canvas
         self.canvas = canvas.Canvas(**attrs)
 
+        # Set Cursor
+        self.reset_cursor()
+
     def page_start(self):
         pass
 
     def page_end(self):
         self.canvas.showPage()
+        self.reset_cursor()
 
     def text_start(self, **args):
         self.text_stack.append(Text(self.canvas, **args))
@@ -316,7 +404,7 @@ class PyPDFML(object):
 
     def text_end(self):
         text = self.text_stack.pop()
-        text.draw()
+        self.cursor_pos -= text.draw()
 
     def image_start(self, **args):
         src = args.pop('src')
