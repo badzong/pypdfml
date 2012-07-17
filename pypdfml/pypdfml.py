@@ -1,16 +1,24 @@
 from reportlab.pdfgen import canvas
 from reportlab.lib import pagesizes
 from reportlab.lib import units
+from reportlab.graphics import barcode
+from reportlab.graphics import renderPDF
 import xml.parsers.expat
 from jinja2 import Environment, PackageLoader
 import os.path
+from reportlab.graphics.barcode import createBarcodeDrawing
+from reportlab.graphics.shapes import Drawing
+
+from reportlab.lib import colors
+from reportlab.graphics.shapes import Rect
 
 math_attributes = ['x', 'y', 'x1', 'y1', 'x2', 'y2', 'x_cen', 'y_cen', 'r',
-    'height', 'width', 'line']
+    'height', 'width', 'line', 'barWidth', 'barHeight']
 
 auto_cursor = {
     'text': ['x', 'y', 'width', 'height', 'move_cursor' ],
     'line': ['x1', 'y1', 'x2', 'y2' ],
+    'barcode': ['x', 'y'],
 }
 
 rgb = lambda r: [float(x.strip()) for x in r.split(',')]
@@ -132,6 +140,7 @@ class PyPDFML(object):
     depth = -1
     tag_stack = []
     text_stack = []
+    barcode_stack = []
     width = None
     height = None
 
@@ -245,20 +254,30 @@ class PyPDFML(object):
             self.canvas.setLineJoin(join)
 
     def cursor_magic(self, name, attrs):
+
+        vspace = 2
+
         if not name in auto_cursor:
             return
 
         pos = {}
         pos['move_cursor'] = False
-        pos['height'] = float(attrs.get('fontsize', self.defaults['fontsize']))
         pos['width'] = self.width - 2 * self.cursor_default['x']
         pos['x'] = self.cursor_default['x']
 
-        # line magic (add space between text and lines)
+        lineheight = float(attrs.get('fontsize', self.defaults['fontsize']))
+
+        try:
+            pos['height'] = attrs['height']
+        except KeyError:
+            pos['height'] = lineheight
+
+        # Black magic just add 8pt before lines
         if name == 'line':
-            pos['height'] = pos['height'] / 8.0
-        
-        pos['y'] = self.cursor_pos - pos['height']
+            pos['y'] = self.cursor_pos - lineheight / 2
+        else:
+            pos['y'] = self.cursor_pos - pos['height'] - vspace
+
         pos['x1'] = pos['x']
         pos['x2'] = pos['x'] + pos['width']
         pos['y1'] = pos['y']
@@ -365,6 +384,21 @@ class PyPDFML(object):
         self.parser.Parse(self.xml)
 
     def generate(self, context):
+        # Get a list of available fonts from a fake canvas
+        fake = canvas.Canvas("fake.pdf")
+        fonts = fake.getAvailableFonts()
+        barcodes = barcode.getCodeNames()
+
+        no_support = ['EAN13', 'EAN8', 'FIM', 'POSTNET', 'USPS_4State']
+        for k in no_support:
+            i = barcodes.index(k)
+            del barcodes[i]
+
+        context['__pypdfml__'] = {
+            'fonts': fonts,
+            'barcodes': barcodes,
+        }
+
         self.jinja2(context)
         self.parse()
 
@@ -410,7 +444,51 @@ class PyPDFML(object):
         src = args.pop('src')
         src = os.path.join(self.image_dir, src)
         self.canvas.drawImage(src, **args)
-        
+
+    def barcode_start(self, **args):
+        self.barcode_stack.append(args)
+
+    def barcode_cdata(self, cdata):
+        args = self.barcode_stack.pop()
+        type = args.pop('type')
+
+        try:
+            height = args.pop('height')
+        except KeyError:
+            height = False
+
+        try:
+            width = args.pop('width')
+        except KeyError:
+            width = False
+
+        bc = createBarcodeDrawing(type, value=cdata, **args)
+
+        # Calculate height and width
+        b = bc.getBounds()
+        w = b[2] - b[0]
+        h = b[3] - b[1]
+
+        if height and width:
+            w_ratio = width / w
+            h_ratio = height / h
+        elif width:
+            w_ratio = width / w
+            h_ratio = w_ratio
+        elif height:
+            h_ratio = height / h
+            w_ratio = h_ratio
+        else:
+            h_ratio = 1
+            w_ratio = 1
+
+        transform=[w_ratio,0,0,h_ratio,0,0]
+
+        d = Drawing(w, h, transform=transform)
+        d.add(bc)
+        renderPDF.draw(d, self.canvas, 0, 0)
+
+        self.cursor_pos -= h * h_ratio
 
 if __name__ == '__main__':
 

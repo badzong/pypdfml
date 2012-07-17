@@ -1,5 +1,39 @@
 <pdf filename="example.pdf" pagesize="A4" unit="cm">
 	<page>
+		<text fontsize="18">Available Fonts</text>
+		<line/>
+		<text/>
+		{% for font in __pypdfml__.fonts %}
+			<text font="{{ font }}" lineheight="1.5">{{ font }}</text>
+		{% endfor %}
+	</page>
+	<page>
+		<text fontsize="18">Available Barcodes</text>
+		<line/>
+		<text/>
+		{% for barcode in __pypdfml__.barcodes %}
+			<text>{{ barcode }}</text>
+			<barcode type="{{ barcode }}" height="1">1234567890</barcode>
+		{% endfor %}
+
+		<!--
+		<barcode type="Codabar" x="2.54" y="-12">1234567890</barcode>
+		<barcode type="Code11" x="2.54" y="-13">1234567890</barcode>
+		<barcode type="Code128" x="2.54" y="-14">1234567890</barcode>
+		<barcode type="EAN13" x="2.54" y="-15">1234567890</barcode>
+		<barcode type="EAN8" x="2.54" y="-16">1234567890</barcode>
+		<barcode type="Extended39" x="2.54" y="-17">1234567890</barcode>
+		<barcode type="Extended93" x="2.54" y="-18">1234567890</barcode>
+		<barcode type="FIM" x="2.54" y="-19">1234567890</barcode>
+		<barcode type="I2of5" x="2.54" y="-20">1234567890</barcode>
+		<barcode type="MSI" x="2.54" y="-21">1234567890</barcode>
+		<barcode type="POSTNET"  x="2.54" y="-22">1234567890</barcode>
+		<barcode type="QR" x="2.54" y="-23">1234567890</barcode>
+		<barcode type="Standard39" x="2.54" y="-24">1234567890</barcode>
+		<barcode type="Standard93" x="2.54" y="-25">1234567890</barcode>
+		<barcode type="USPS_4State"  x="2.54" y="-26">1234567890</barcode> -->
+	</page>
+	<page>
 		<text fontsize="18">Der Zauberlehrling (hello {{ what }})</text>
 		<line/>
 		<text>
@@ -62,7 +96,7 @@ Lorem Ipsum</text>
 		{% endfor %}
 	</page>
 	<page>
-		<text fontsize="18">Random rabbit picture</text>
+		<text fontsize="18">A Rabbit</text>
 		<line/>
 		<image src="rabbit.jpg" x="2.54" y="-12"/>
 		<text x="2.54" y="-12.5">This photo used through Creative Commons by Zappowbang on Flickr</text>
