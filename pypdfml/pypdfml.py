@@ -12,7 +12,7 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 
 try:
-    from jinja2 import Environment, PackageLoader
+    from jinja2 import Environment, PackageLoader, FileSystemLoader
 except ImportError:
     pass
 
@@ -395,7 +395,8 @@ class PyPDFML(object):
         f.close()
 
     def jinja2(self, context):
-        env = Environment(loader=PackageLoader('pypdfml', self.template_dir))
+        #env = Environment(loader=PackageLoader('pypdfml', self.template_dir))
+        env = Environment(loader=FileSystemLoader(self.template_dir))
         template = env.get_template(self.template)
         self.xml = template.render(**context).encode('utf-8')
 
