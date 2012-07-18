@@ -16,27 +16,10 @@
 			{% if bc.sample %}
 				<barcode type="{{ bc.name }}" height="1">{{ bc.sample }}</barcode>
 			{% else %}
-				<text fill="red">** NO SAMPLE AVAILABLE **</text>
+				<text fill="red">** NO SAMPLE **</text>
 			{% endif %}
 			<text/>
 		{% endfor %}
-
-		<!--
-		<barcode type="Codabar" x="2.54" y="-12">1234567890</barcode>
-		<barcode type="Code11" x="2.54" y="-13">1234567890</barcode>
-		<barcode type="Code128" x="2.54" y="-14">1234567890</barcode>
-		<barcode type="EAN13" x="2.54" y="-15">1234567890</barcode>
-		<barcode type="EAN8" x="2.54" y="-16">1234567890</barcode>
-		<barcode type="Extended39" x="2.54" y="-17">1234567890</barcode>
-		<barcode type="Extended93" x="2.54" y="-18">1234567890</barcode>
-		<barcode type="FIM" x="2.54" y="-19">1234567890</barcode>
-		<barcode type="I2of5" x="2.54" y="-20">1234567890</barcode>
-		<barcode type="MSI" x="2.54" y="-21">1234567890</barcode>
-		<barcode type="POSTNET"  x="2.54" y="-22">1234567890</barcode>
-		<barcode type="QR" x="2.54" y="-23">1234567890</barcode>
-		<barcode type="Standard39" x="2.54" y="-24">1234567890</barcode>
-		<barcode type="Standard93" x="2.54" y="-25">1234567890</barcode>
-		<barcode type="USPS_4State"  x="2.54" y="-26">1234567890</barcode> -->
 	</page>
 	<page>
 		<text fontsize="18">Der Zauberlehrling (hello {{ what }})</text>
