@@ -6,9 +6,9 @@ Simple XML wrapper for reportlab with jinja2 support
 
 ## Requirements
 
-reportlab
-jinja2
-PIL
+  * reportlab
+  * PIL
+  * jinja2 (optional)
 
 
 ## Usage
@@ -16,10 +16,10 @@ PIL
 ```
 from pypdfml import PyPDFML
 
-pdf = PyPDFML('mytemplate.xml')
+pdf = PyPDFML('example.xml')
 
 context = {
-    'foo': 'world'
+    'what': 'world'
 }
 
 pdf.generate(context)
@@ -29,4 +29,4 @@ pdf.save()
 
 ## Examples
 
-Just run pypdf.py and have a look at templates/example.xml
+The following [template]: https://github.com/badzong/pypdfml/blob/master/pypdfml/templates/example.xml generates this [PDF document]: https://github.com/badzong/pypdfml/blob/master/example.pdf
