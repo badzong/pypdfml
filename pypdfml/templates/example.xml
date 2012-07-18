@@ -1,11 +1,18 @@
 <pdf filename="example.pdf" pagesize="A4" unit="cm">
+	<font name="asongforjennifer" ttf="a song for jennifer.ttf"/>
 	<page>
-		<text fontsize="18">Available Fonts</text>
+		<text fontsize="18">Available Fonts (on my computer at generation time)</text>
 		<line/>
 		<text/>
 		{% for font in __pypdfml__.fonts %}
 			<text font="{{ font }}" lineheight="1.5">{{ font }}</text>
 		{% endfor %}
+		<text/>
+		<text/>
+		<text fontsize="18">Loaded TTF Font</text>
+		<line/>
+		<text/>
+		<text font="asongforjennifer" fontsize="16">A Song For Jennifer (http://www.1001freefonts.com)</text>
 	</page>
 	<page>
 		<text fontsize="18">Available Barcodes</text>

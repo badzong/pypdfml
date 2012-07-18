@@ -4,11 +4,17 @@ from reportlab.lib import units
 from reportlab.graphics import barcode
 from reportlab.graphics import renderPDF
 import xml.parsers.expat
-from jinja2 import Environment, PackageLoader
 import os.path
 from reportlab.graphics.barcode import createBarcodeDrawing
 from reportlab.graphics.shapes import Drawing
 from reportlab.lib import colors
+from reportlab.pdfbase import pdfmetrics  
+from reportlab.pdfbase.ttfonts import TTFont
+
+try:
+    from jinja2 import Environment, PackageLoader
+except ImportError:
+    pass
 
 math_attributes = ['x', 'y', 'x1', 'y1', 'x2', 'y2', 'x_cen', 'y_cen', 'r',
     'height', 'width', 'line', 'barWidth', 'barHeight']
@@ -58,6 +64,10 @@ class Text(object):
         self.lineheight *= lineheight
 
         self.text = canvas.beginText()
+
+        # Set font
+        self.text.setFont(self.font, self.fontsize)
+
         self.text.setTextOrigin(x, self.first_line)
         self.space_width = canvas.stringWidth(' ', font, fontsize)
 
@@ -79,8 +89,6 @@ class Text(object):
         return self.lineheight
 
     def draw(self):
-        # Set font
-        self.canvas.setFont(self.font, self.fontsize)
         page_cursor = 0
 
         for line in self.string.split('\n'):
@@ -172,11 +180,12 @@ class PyPDFML(object):
     cursor_pos = None
 
     def __init__(self, template, template_dir='templates',
-        image_dir='images'):
+        image_dir='images', font_dir='fonts'):
 
         self.template = template
         self.template_dir = template_dir
         self.image_dir = image_dir
+        self.font_dir = font_dir
 
         self.parser = xml.parsers.expat.ParserCreate(encoding='UTF-8')
         self.parser.StartElementHandler = self.get_start_handler()
@@ -380,6 +389,11 @@ class PyPDFML(object):
 
         return handler
 
+    def load_template(self):
+        f = open(self.template, 'r')
+        self.xml = f.read()
+        f.close()
+
     def jinja2(self, context):
         env = Environment(loader=PackageLoader('pypdfml', self.template_dir))
         template = env.get_template(self.template)
@@ -388,7 +402,7 @@ class PyPDFML(object):
     def parse(self):
         self.parser.Parse(self.xml)
 
-    def generate(self, context):
+    def pypdfml_context(self, context):
         # Get a list of available fonts from a fake canvas
         fake = canvas.Canvas("fake.pdf")
         fonts = fake.getAvailableFonts()
@@ -417,7 +431,15 @@ class PyPDFML(object):
             'barcodes': barcodes,
         }
 
-        self.jinja2(context)
+    def generate(self, context=None):
+
+        # FIXME: Very implicit behavior
+        if context is None:
+            self.load_template()
+        else:
+            self.pypdfml_context(context)
+            self.jinja2(context)
+
         self.parse()
 
     def save(self):
@@ -447,6 +469,20 @@ class PyPDFML(object):
     def page_end(self):
         self.canvas.showPage()
         self.reset_cursor()
+
+    def font_start(self, name, ttf=None, afm=None, pfb=None):
+
+        # True Type Fonts
+        if ttf:
+            font_path = os.path.join(self.font_dir, ttf)
+            pdfmetrics.registerFont(TTFont(name, font_path))
+            return
+
+        # Type 1
+        face = pdfmetrics.EmbeddedType1Face(afm, pfb)
+        pdfmetrics.registerTypeFace(face) 
+        font = pdfmetrics.Font(name, name, 'WinAnsiEncoding')
+        pdfmetrics.registerFont(font) 
 
     def text_start(self, **args):
         self.text_stack.append(Text(self.canvas, **args))
@@ -517,4 +553,5 @@ if __name__ == '__main__':
     }
 
     pdf.generate(context)
+    #pdf.generate()
     pdf.save()
