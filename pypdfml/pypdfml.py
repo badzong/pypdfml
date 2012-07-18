@@ -8,9 +8,7 @@ from jinja2 import Environment, PackageLoader
 import os.path
 from reportlab.graphics.barcode import createBarcodeDrawing
 from reportlab.graphics.shapes import Drawing
-
 from reportlab.lib import colors
-from reportlab.graphics.shapes import Rect
 
 math_attributes = ['x', 'y', 'x1', 'y1', 'x2', 'y2', 'x_cen', 'y_cen', 'r',
     'height', 'width', 'line', 'barWidth', 'barHeight']
@@ -21,7 +19,14 @@ auto_cursor = {
     'barcode': ['x', 'y'],
 }
 
-rgb = lambda r: [float(x.strip()) for x in r.split(',')]
+def get_color(str_color):
+    if ',' in str_color:
+        return [float(x.strip()) for x in str_color.split(',')]
+    
+    if str_color[0] == '#':
+        return colors.HexColor(str_color).rgb()
+
+    return colors.__dict__[str_color].rgb()
 
 class Text(object):
 
@@ -222,13 +227,13 @@ class PyPDFML(object):
         if stroke == '0':
             attrs['stroke'] = 0
         elif stroke:
-            colors = rgb(stroke)
-            self.canvas.setStrokeColorRGB(*colors)
+            color = get_color(stroke)
+            self.canvas.setStrokeColorRGB(*color)
 
         fill = self.pop_value(attrs, 'fill')
         if fill:
-            colors = rgb(fill)
-            self.canvas.setFillColorRGB(*colors)
+            color = get_color(fill)
+            self.canvas.setFillColorRGB(*color)
 
             # Pass fill=1 to reportlab shapes
             if self.tag_stack[-1] != 'text':
@@ -387,12 +392,25 @@ class PyPDFML(object):
         # Get a list of available fonts from a fake canvas
         fake = canvas.Canvas("fake.pdf")
         fonts = fake.getAvailableFonts()
-        barcodes = barcode.getCodeNames()
 
-        no_support = ['EAN13', 'EAN8', 'FIM', 'POSTNET', 'USPS_4State']
-        for k in no_support:
-            i = barcodes.index(k)
-            del barcodes[i]
+        barcodes = []
+        for name in barcode.getCodeNames():
+            sample = '0123456789'
+
+            if name == 'EAN13':
+                sample = None # FIXME: '123456789012' doesn't work
+            elif name == 'EAN8':
+                sample = None # FIXME: '1234567' doesn't work
+            elif name == 'FIM':
+                sample = 'A'
+            elif name == 'POSTNET':
+                sample = '55555-1237'
+            elif name == 'USPS_4State':
+                sample = '01234567890123456789'
+            elif name == 'QR':
+                sample = 'http://github.com/badzong/pypdfml'
+
+            barcodes.append({'name': name, 'sample': sample})
 
         context['__pypdfml__'] = {
             'fonts': fonts,
