@@ -29,4 +29,4 @@ pdf.save()
 
 ## Examples
 
-The following [template]: https://github.com/badzong/pypdfml/blob/master/pypdfml/templates/example.xml generates this [PDF document]: https://github.com/badzong/pypdfml/blob/master/example.pdf
+The following [template](https://github.com/badzong/pypdfml/blob/master/pypdfml/templates/example.xml) generates this [PDF document](https://github.com/badzong/pypdfml/blob/master/example.pdf)
