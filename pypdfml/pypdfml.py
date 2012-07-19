@@ -242,7 +242,7 @@ class MagicCursor(object):
         (self.pagewidth, self.pageheight) = pagesize
 
         # If margin comes from the XML it's a str
-        if isinstance(margin, str):
+        if ',' in margin:
             margin = [float(x.strip()) for x in margin.split(',')]
 
         nvalues = len(margin)

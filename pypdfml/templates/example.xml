@@ -1,4 +1,4 @@
-<pdf filename="example.pdf" pagesize="A4" unit="cm">
+<pdf filename="example.pdf" pagesize="A4" unit="cm" margin="1.5,1">
 	<font name="asongforjennifer" ttf="a song for jennifer.ttf"/>
 	<page>
 		<rect height="1" width="1" x="0" y="-1" fill="blue"/>
