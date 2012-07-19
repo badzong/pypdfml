@@ -583,11 +583,11 @@ class PyPDFML(object):
         # Set default unit
         self.unit = units.__dict__[self.pop_value(attrs, 'unit')]
 
-        # Create canvas
-        self.canvas = canvas.Canvas(**attrs)
-
         # Set Cursor
         self.cursor = MagicCursor(attrs['pagesize'], self.unit, self.pop_value(attrs, 'margin'))
+
+        # Create canvas
+        self.canvas = canvas.Canvas(**attrs)
 
     def page_start(self):
         pass
