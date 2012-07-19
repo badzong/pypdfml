@@ -4,6 +4,3 @@ __description__ = 'Simple XML wrapper for reportlab.'
 __license__ = 'unknown'
 __author__ = 'Manuel Badzong'
 __author_email__ = 'manuel@andev.ch'
-
-__all__ = ['PyPDFML']
-from pypdfml import PyPDFML
