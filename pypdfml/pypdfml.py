@@ -307,7 +307,7 @@ class MagicCursor(object):
 
         # move_cursor was specified in XML so adjust cursor
         if attrs.get('move_cursor', False):
-            self.y = attrs['y'] - self.height
+            self.y = attrs['y']
 
         # Add attributes
         add = self.tag_keys[name]
