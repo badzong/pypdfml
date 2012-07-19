@@ -10,6 +10,7 @@ from reportlab.graphics.shapes import Drawing
 from reportlab.lib import colors
 from reportlab.pdfbase import pdfmetrics  
 from reportlab.pdfbase.ttfonts import TTFont
+from PIL import Image
 
 try:
     from jinja2 import Environment, PackageLoader, FileSystemLoader
@@ -466,6 +467,15 @@ class PyPDFML(object):
 
             # Automatic cursor
             if self.cursor:
+
+                # FIXME: Hack this should be done somewhere else! 
+                if name == 'image' and 'height' not in attrs:
+                    # CAVEAT: this is done twice once here, once in image_start
+                    src = os.path.join(self.image_dir, attrs['src'])
+
+                    im = Image.open(src)
+                    attrs['height'] = im.size[1]
+
                 self.cursor.magic(name, attrs)
 
             # Save state and modify canvas
@@ -621,7 +631,6 @@ class PyPDFML(object):
     def barcode_cdata(self, cdata):
         b = self.barcode_stack.pop()
         b.draw(self.canvas, cdata)
-        #self.cursor.move(y = b.draw(self.canvas, cdata))
     
 
 if __name__ == '__main__':

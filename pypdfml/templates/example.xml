@@ -94,7 +94,8 @@ Lorem Ipsum</text>
 	<page>
 		<text fontsize="18">A Rabbit</text>
 		<line/>
-		<image src="rabbit.jpg" x="1" y="-11"/>
-		<text x="1" y="-11.5" width="15">This photo used through Creative Commons by Zappowbang on Flickr</text>
+		<text/>
+		<image src="rabbit.jpg"/>
+		<text>This photo used through Creative Commons by Zappowbang on Flickr</text>
 	</page>
 </pdf>
