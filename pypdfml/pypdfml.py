@@ -16,14 +16,45 @@ try:
 except ImportError:
     pass
 
+# DEFAULT VALUES
+
+## Page
+PAGESIZE='letter'
+UNIT='inch'
+
+## Magic cursor
+MARGIN=[1,1,1,1]
+
+## Text
+LINEHEIGHT = 1.1
+FONT = 'Helvetica'
+FONTSIZE = 11
+ALIGN = 'left'
+
+## Paths
+TEMPLATES = 'templates'
+IMAGES = 'images'
+FONTS = 'fonts'
+
+## Expand tab char
+TABWIDTH = 8
+
+## Barcode samples
+BARCODE_DEFAULT = '0123456789'
+BARCODE_SAMPLES = {
+    'EAN13': None,      # FIXME: '123456789012' doesn't work
+    'EAN8': None,       # FIXME: '1234567' doesn't work
+    'FIM': 'A',
+    'POSTNET': '55555-1237',
+    'USPS_4State': '01234567890123456789',
+    'QR': 'http://github.com/badzong/pypdfml',
+}
+
+
+# MAGIC GOES HERE
+
 math_attributes = ['x', 'y', 'x1', 'y1', 'x2', 'y2', 'x_cen', 'y_cen', 'r',
     'height', 'width', 'line', 'barWidth', 'barHeight']
-
-auto_cursor = {
-    'text': ['x', 'y', 'width', 'height', 'move_cursor' ],
-    'line': ['x1', 'y1', 'x2', 'y2' ],
-    'barcode': ['x', 'y'],
-}
 
 def get_color(str_color):
     if ',' in str_color:
@@ -34,13 +65,62 @@ def get_color(str_color):
 
     return colors.__dict__[str_color].rgb()
 
+class Barcode(object):
+
+    def __init__(self, type, **args):
+        self.type = type
+        self.args = args
+
+    def draw(self, canvas, value):
+
+        try:
+            height = self.args.pop('height')
+        except KeyError:
+            height = False
+
+        try:
+            width = self.args.pop('width')
+        except KeyError:
+            width = False
+
+        bc = createBarcodeDrawing(self.type, value=value, **self.args)
+
+        # Calculate height and width
+        b = bc.getBounds()
+        w = b[2] - b[0]
+        h = b[3] - b[1]
+
+        if height and width:
+            w_ratio = width / w
+            h_ratio = height / h
+        elif width:
+            w_ratio = width / w
+            h_ratio = w_ratio
+        elif height:
+            h_ratio = height / h
+            w_ratio = h_ratio
+        else:
+            h_ratio = 1
+            w_ratio = 1
+
+        transform=[w_ratio,0,0,h_ratio,0,0]
+
+        d = Drawing(w, h, transform=transform)
+        d.add(bc)
+
+        renderPDF.draw(d, canvas, 0, 0)
+
+        # Return height for auto cursor movement
+        return h * h_ratio
+
+
 class Text(object):
 
     string = ''
     line_number = 1
 
-    def __init__(self, canvas, x, y, width, height, font='Helvetica',
-        fontsize=11, align='left', lineheight=1, move_cursor=False):
+    def __init__(self, canvas, x, y, width, height, font=FONT,
+        fontsize=FONTSIZE, align=ALIGN, lineheight=LINEHEIGHT, move_cursor=False):
 
         # Make sure these values aren't strings
         fontsize = float(fontsize)
@@ -56,12 +136,9 @@ class Text(object):
         self.width = width
         self.move_cursor = move_cursor
 
-        # Regular lineheight
-        self.lineheight = fontsize / 72.0 * units.inch
+        # Lineheight
+        self.lineheight = fontsize * lineheight
         self.first_line = y + height - self.lineheight
-
-        # Adjusted lineheight
-        self.lineheight *= lineheight
 
         self.text = canvas.beginText()
 
@@ -72,7 +149,7 @@ class Text(object):
         self.space_width = canvas.stringWidth(' ', font, fontsize)
 
     def append(self, s):
-        self.string += s.replace('\t', ' ' * 8)
+        self.string += s.replace('\t', ' ' * TABWIDTH)
 
     def draw_line(self, words, space_width, offset):
         line_width = offset
@@ -145,6 +222,109 @@ class Text(object):
         else:
             return 0
 
+class MagicCursor(object):
+
+    tag_keys = {
+        'text': ['x', 'y', 'width', 'height', 'move_cursor' ],
+        'line': ['x1', 'y1', 'x2', 'y2' ],
+        'barcode': ['x', 'y'],
+        'image': ['x', 'y'],
+        'circle': ['x_cen', 'y_cen'],
+        'rect': ['x', 'y', 'width', 'height'],
+        'ellipse': ['x1', 'x2', 'y1', 'y2'],
+    }
+
+    def __init__(self, pagesize, unit, margin=MARGIN):
+
+        (self.pagewidth, self.pageheight) = pagesize
+
+        # If margin comes from the XML it's a str
+        if isinstance(margin, str):
+            margin = [float(x.strip()) for x in margin.split(',')]
+
+        nvalues = len(margin)
+        if nvalues == 1:
+            margin *= 4
+        if nvalues == 2:
+            margin *= 2
+
+        margin = map(lambda x: x * unit, margin)
+
+        self.top = margin[0]
+        self.right = margin[1]
+        self.bottom = margin[2]
+        self.left = margin[3]
+
+        self.x = self.left
+        self.y = self.pageheight - self.top
+        self.width = self.pagewidth - self.right - self.left
+
+    def magic(self, name, attrs):
+
+        if not name in self.tag_keys:
+            return
+
+        lineheight = float(attrs.get('lineheight', LINEHEIGHT)) * float(attrs.get('fontsize', FONTSIZE))
+
+        # Move cursor down
+        try:
+            self.height = attrs['height']
+        except KeyError:
+            self.height = lineheight
+
+        # Move before draw
+        if name == 'line':
+            self.y1 = self.y - self.height / 2
+            self.y2 = self.y1
+            self.x1 = self.x
+            self.x2 = self.x + self.width
+            
+        elif name == 'circle':
+            self.x_cen = self.x + attrs['r']
+            self.y_cen = self.y - attrs['r']
+
+        elif name == 'ellipse':
+            try:
+                width = attrs.pop('width')
+                height = attrs.pop('height')
+            except KeyError:
+                pass
+            else:
+                self.y1 = self.y - height
+                self.y2 = self.y
+                self.x1 = self.x
+                self.x2 = self.x + width
+
+        else:
+            self.y -= self.height
+
+        # Load Values
+        self.move_cursor = False
+        
+        # If y was not specified, the cursor is moved automatically
+        if 'y' not in attrs:
+            self.move_cursor = True
+
+        # move_cursor was specified in XML so adjust cursor
+        if attrs.get('move_cursor', False):
+            self.y = attrs['y'] - self.height
+
+        # Add attributes
+        add = self.tag_keys[name]
+        for k in add:
+            if k in attrs:
+                continue
+
+            attrs[k] = getattr(self, k)
+
+    def reset(self):
+        self.x = self.left
+        self.y = self.pageheight - self.top
+
+    def move(self, y=0, x=0):
+        self.y -= y
+        self.x += x
+
 
 class PyPDFML(object):
 
@@ -156,31 +336,16 @@ class PyPDFML(object):
     barcode_stack = []
     width = None
     height = None
+    cursor = None
 
     defaults = {
-        'pagesize': 'letter',
-        'unit': 'inch',
-        'font': 'Helvetica',
-        'fontsize': 11,
-
-        'rotate': False,
-        'stroke': False,
-        'fill': False,
-        'dash': False,
-        'line': False,
-        'cap': False,
-        'join': False,
+        'pagesize': PAGESIZE,
+        'unit': UNIT,
+        'margin': [ 1, ]
     }
 
-    # Used only for auto corsor tags
-    cursor_default = {
-        'x': 1 * units.inch,
-        'y': 1 * units.inch,
-    }
-    cursor_pos = None
-
-    def __init__(self, template, template_dir='templates',
-        image_dir='images', font_dir='fonts'):
+    def __init__(self, template, template_dir=TEMPLATES,
+        image_dir=IMAGES, font_dir=FONTS):
 
         self.template = template
         self.template_dir = template_dir
@@ -198,7 +363,12 @@ class PyPDFML(object):
         except KeyError:
             pass
 
-        return self.defaults[name]
+        try:
+            return self.defaults[name]
+        except KeyError:
+            pass
+    
+        return None
 
     def do_math(self, attrs):
         # Cast arguments and multiply by unit
@@ -267,56 +437,6 @@ class PyPDFML(object):
             join = int(join)
             self.canvas.setLineJoin(join)
 
-    def cursor_magic(self, name, attrs):
-
-        vspace = 2
-
-        if not name in auto_cursor:
-            return
-
-        pos = {}
-        pos['move_cursor'] = False
-        pos['width'] = self.width - 2 * self.cursor_default['x']
-        pos['x'] = self.cursor_default['x']
-
-        lineheight = float(attrs.get('fontsize', self.defaults['fontsize']))
-
-        try:
-            pos['height'] = attrs['height']
-        except KeyError:
-            pos['height'] = lineheight
-
-        # Black magic just add 8pt before lines
-        if name == 'line':
-            pos['y'] = self.cursor_pos - lineheight / 2
-        else:
-            pos['y'] = self.cursor_pos - pos['height'] - vspace
-
-        pos['x1'] = pos['x']
-        pos['x2'] = pos['x'] + pos['width']
-        pos['y1'] = pos['y']
-        pos['y2'] = pos['y']
-
-        # If y was not specified, the cursor is moved automatically
-        if 'y' not in attrs:
-            pos['move_cursor'] = True
-
-        # move_cursor was specified in XML so adjust cursor here
-        move_cursor = attrs.get('move_cursor', False)
-        if move_cursor:
-            self.cursor_pos = attrs['y'] + pos['height']
-
-        # Add attributes
-        add = auto_cursor[name]
-        for k in add:
-            if k in attrs:
-                continue
-
-            attrs[k] = pos[k]
-
-    def reset_cursor(self):
-        self.cursor_pos = self.height - self.cursor_default['y']
-
     def get_start_handler(self):
         def handler(name, attrs):
             self.tag_stack.append(name)
@@ -337,7 +457,8 @@ class PyPDFML(object):
             self.do_math(attrs)
 
             # Automatic cursor
-            self.cursor_magic(name, attrs)
+            if self.cursor:
+                self.cursor.magic(name, attrs)
 
             # Save state and modify canvas
             if self.canvas and self.depth > 0:
@@ -410,21 +531,7 @@ class PyPDFML(object):
 
         barcodes = []
         for name in barcode.getCodeNames():
-            sample = '0123456789'
-
-            if name == 'EAN13':
-                sample = None # FIXME: '123456789012' doesn't work
-            elif name == 'EAN8':
-                sample = None # FIXME: '1234567' doesn't work
-            elif name == 'FIM':
-                sample = 'A'
-            elif name == 'POSTNET':
-                sample = '55555-1237'
-            elif name == 'USPS_4State':
-                sample = '01234567890123456789'
-            elif name == 'QR':
-                sample = 'http://github.com/badzong/pypdfml'
-
+            sample = BARCODE_SAMPLES.get(name, BARCODE_DEFAULT)
             barcodes.append({'name': name, 'sample': sample})
 
         context['__pypdfml__'] = {
@@ -462,14 +569,14 @@ class PyPDFML(object):
         self.canvas = canvas.Canvas(**attrs)
 
         # Set Cursor
-        self.reset_cursor()
+        self.cursor = MagicCursor(attrs['pagesize'], self.unit, self.pop_value(attrs, 'margin'))
 
     def page_start(self):
         pass
 
     def page_end(self):
         self.canvas.showPage()
-        self.reset_cursor()
+        self.cursor.reset()
 
     def font_start(self, name, ttf=None, afm=None, pfb=None):
 
@@ -493,7 +600,7 @@ class PyPDFML(object):
 
     def text_end(self):
         text = self.text_stack.pop()
-        self.cursor_pos -= text.draw()
+        self.cursor.move(y = text.draw() - text.lineheight)
 
     def image_start(self, **args):
         src = args.pop('src')
@@ -501,49 +608,13 @@ class PyPDFML(object):
         self.canvas.drawImage(src, **args)
 
     def barcode_start(self, **args):
-        self.barcode_stack.append(args)
+        self.barcode_stack.append(Barcode(**args))
 
     def barcode_cdata(self, cdata):
-        args = self.barcode_stack.pop()
-        type = args.pop('type')
-
-        try:
-            height = args.pop('height')
-        except KeyError:
-            height = False
-
-        try:
-            width = args.pop('width')
-        except KeyError:
-            width = False
-
-        bc = createBarcodeDrawing(type, value=cdata, **args)
-
-        # Calculate height and width
-        b = bc.getBounds()
-        w = b[2] - b[0]
-        h = b[3] - b[1]
-
-        if height and width:
-            w_ratio = width / w
-            h_ratio = height / h
-        elif width:
-            w_ratio = width / w
-            h_ratio = w_ratio
-        elif height:
-            h_ratio = height / h
-            w_ratio = h_ratio
-        else:
-            h_ratio = 1
-            w_ratio = 1
-
-        transform=[w_ratio,0,0,h_ratio,0,0]
-
-        d = Drawing(w, h, transform=transform)
-        d.add(bc)
-        renderPDF.draw(d, self.canvas, 0, 0)
-
-        self.cursor_pos -= h * h_ratio
+        b = self.barcode_stack.pop()
+        b.draw(self.canvas, cdata)
+        #self.cursor.move(y = b.draw(self.canvas, cdata))
+    
 
 if __name__ == '__main__':
 
@@ -554,5 +625,4 @@ if __name__ == '__main__':
     }
 
     pdf.generate(context)
-    #pdf.generate()
     pdf.save()
