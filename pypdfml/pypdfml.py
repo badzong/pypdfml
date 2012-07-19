@@ -52,7 +52,6 @@ BARCODE_SAMPLES = {
 
 
 # MAGIC GOES HERE
-
 math_attributes = ['x', 'y', 'x1', 'y1', 'x2', 'y2', 'x_cen', 'y_cen', 'r',
     'height', 'width', 'line', 'barWidth', 'barHeight']
 
@@ -119,7 +118,7 @@ class Text(object):
     string = ''
     line_number = 1
 
-    def __init__(self, canvas, x, y, width, height, font=FONT,
+    def __init__(self, canvas, x, y, width, height=0, font=FONT,
         fontsize=FONTSIZE, align=ALIGN, lineheight=LINEHEIGHT, move_cursor=False):
 
         # Make sure these values aren't strings
@@ -132,13 +131,16 @@ class Text(object):
         self.align = align
         self.x = x
         self.y = y
-        self.height = height
         self.width = width
         self.move_cursor = move_cursor
 
         # Lineheight
         self.lineheight = fontsize * lineheight
-        self.first_line = y + height - self.lineheight
+
+        # If height was specified. Start 1 line below.
+        self.first_line = y
+        if height:
+            self.first_line += height - self.lineheight
 
         self.text = canvas.beginText()
 
@@ -264,6 +266,12 @@ class MagicCursor(object):
         if not name in self.tag_keys:
             return
 
+        move_cursor = attrs.get('move_cursor', False)
+        
+        # If move_cursor is false and y has been set there's no magic
+        if not move_cursor and 'y' in attrs:
+            return
+
         lineheight = float(attrs.get('lineheight', LINEHEIGHT)) * float(attrs.get('fontsize', FONTSIZE))
 
         # Move cursor down
@@ -306,7 +314,7 @@ class MagicCursor(object):
             self.move_cursor = True
 
         # move_cursor was specified in XML so adjust cursor
-        if attrs.get('move_cursor', False):
+        if move_cursor:
             self.y = attrs['y']
 
         # Add attributes
