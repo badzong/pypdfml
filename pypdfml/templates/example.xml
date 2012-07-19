@@ -81,7 +81,7 @@ Lorem Ipsum</text>
 		<ellipse x1="10" y1="-6" x2="13" y2="-4" stroke="1,1,0" line="0.25" fill="0.5,0,0"/>
 		<rect x="15" y="-6.5" width="2" height="2" rotate="45" stroke="0" fill="0,1,0"/>
 
-		<text x="2.54" y="-10" fontsize="18" move_cursor="1">Spirograph</text>
+		<text y="-10" fontsize="18" move_cursor="1">Spirograph</text>
 		<line/>
 		{% for deg in range(0, 360, 15) %}
 			<rect rotate="{{ deg }}" x="10" y="10" height="8" width="1" stroke="1,0,0"/>
@@ -93,7 +93,7 @@ Lorem Ipsum</text>
 	<page>
 		<text fontsize="18">A Rabbit</text>
 		<line/>
-		<image src="rabbit.jpg" x="2.54" y="-12"/>
-		<text x="2.54" y="-12.5">This photo used through Creative Commons by Zappowbang on Flickr</text>
+		<image src="rabbit.jpg" x="1" y="-11"/>
+		<text x="1" y="-11.5">This photo used through Creative Commons by Zappowbang on Flickr</text>
 	</page>
 </pdf>
