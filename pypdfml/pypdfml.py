@@ -611,6 +611,9 @@ class PyPDFML(object):
         pdfmetrics.registerFont(font) 
 
     def text_start(self, **args):
+        if not 'width' in args:
+            args['width'] = self.width
+
         self.text_stack.append(Text(self.canvas, **args))
 
     def text_cdata(self, cdata):
