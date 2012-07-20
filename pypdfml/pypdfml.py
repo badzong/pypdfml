@@ -221,7 +221,7 @@ class Text(object):
         self.canvas.drawText(self.text)
 
         if self.move_cursor:
-            return page_cursor
+            return page_cursor - self.lineheight
         else:
             return 0
 
@@ -380,8 +380,35 @@ class PyPDFML(object):
         return None
 
     def do_math(self, attrs):
+
+        keywords = {
+            'x': {},
+            'y': {},
+        }
+        try:
+            keywords['x'].update({
+                'center': self.width / 2,
+                'cursor': self.cursor.x,
+            })
+            keywords['y'].update({
+                'center': self.height / 2,
+                'cursor': self.cursor.y,
+            })
+        except TypeError:
+            pass
+
         # Cast arguments and multiply by unit
         for k in attrs.keys():
+            kw = attrs[k]
+            try:
+                attrs[k] = keywords[k][kw]
+            except KeyError:
+                pass
+            else:
+                if kw == 'cursor':
+                    attrs['move_cursor'] = False
+                continue
+                    
             if k in math_attributes:
                 attrs[k] = float(attrs[k]) * self.unit
 
@@ -621,7 +648,7 @@ class PyPDFML(object):
 
     def text_end(self):
         text = self.text_stack.pop()
-        self.cursor.move(y = text.draw() - text.lineheight)
+        self.cursor.move(y = text.draw())
 
     def image_start(self, **args):
         src = args.pop('src')
